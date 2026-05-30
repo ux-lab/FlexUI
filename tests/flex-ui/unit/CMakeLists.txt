@@ -28,3 +28,19 @@ target_link_libraries(flexui_unit_tests PRIVATE
   GTest::gtest_main
 )
 add_test(NAME flexui_unit_tests COMMAND flexui_unit_tests)
+
+# TSan sub-target: concurrency-sensitive subset only (task_runner / worker / timer).
+# Build with: cmake -DFLEXUI_TESTS_ENABLE_TSAN=ON ... then ctest -R flexui_unit_tests_tsan
+add_executable(flexui_unit_tests_tsan
+  task_runner_test.cc
+  worker_test.cc
+  worker_manager_test.cc
+  timer_test.cc
+)
+target_link_libraries(flexui_unit_tests_tsan PRIVATE
+  flexui_common
+  flexui_test_support
+  GTest::gtest
+  GTest::gtest_main
+)
+add_test(NAME flexui_unit_tests_tsan COMMAND flexui_unit_tests_tsan)
