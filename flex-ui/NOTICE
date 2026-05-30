@@ -27,3 +27,15 @@ Each derived file retains its original Apache-2.0 license header and
 THL A29 Limited copyright. Modifications by the FlexUI authors are
 indicated by a "Modified by the FlexUI authors" block immediately below
 the original header.
+
+---
+
+The following directory contains QuickJS by Fabrice Bellard and Charlie
+Gordon, licensed under the MIT License:
+
+  flex-ui/core/js-engine/third_party/quickjs/
+
+Files: quickjs.{c,h}, cutils.{c,h}, dtoa.{c,h}, libregexp.{c,h},
+       libregexp-opcode.h, libunicode.{c,h}, libunicode-table.h, list.h.
+Full license text:
+       flex-ui/core/js-engine/third_party/quickjs/LICENSE.
