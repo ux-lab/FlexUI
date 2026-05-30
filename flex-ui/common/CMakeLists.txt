@@ -17,7 +17,11 @@ target_sources(flexui_common PRIVATE
   src/task.cc
   src/idle_task.cc
   src/task_runner.cc
-  src/worker_stub.cc
+  # Task 12: worker family + cv_driver (replaces worker_stub.cc)
+  src/cv_driver.cc
+  src/worker.cc
+  src/worker_impl.cc
+  src/worker_manager.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.

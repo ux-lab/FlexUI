@@ -25,20 +25,22 @@
  * The FlexUI modifications:
  *   - Moved namespace `footstone` -> `flexui::common`.
  *   - Renamed include path `footstone/...` -> `flexui/common/...`.
- *   - This is a STUB header providing forward declarations only so that
- *     task_runner.h/cc compile before Task 12 absorbs the full Worker
- *     implementation. Replace this file in Task 12.
+ *   - No behavioral change.
  *
  * The original Apache-2.0 license terms above continue to apply.
  */
 
 #pragma once
 
-#include <cstdint>
-#include <functional>
-#include <memory>
+#include <list>
+#include <map>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
+#include <vector>
 
+#include "flexui/common/driver.h"
 #include "flexui/common/task.h"
 #include "flexui/common/time_delta.h"
 #include "flexui/common/time_point.h"
@@ -46,37 +48,102 @@
 namespace flexui::common {
 inline namespace runner {
 
+class WorkerManager;
 class TaskRunner;
 
 class Worker {
  public:
   static const int32_t kWorkerKeysMax = 32;
+  struct WorkerKey {
+    bool is_used = false;
+    std::function<void(void *)> destruct = nullptr;
+  };
 
-  virtual ~Worker() = default;
+  Worker(std::string name, bool is_schedulable, std::unique_ptr<Driver> driver);
+  virtual ~Worker();
 
-  // Called by TaskRunner to wake the worker when a new task is queued.
-  virtual void Notify() = 0;
+  void Notify();
+  void Terminate();
+  void BindGroup(uint32_t father_id, const std::shared_ptr<TaskRunner>& child);
+  void Bind(std::vector<std::shared_ptr<TaskRunner>> runner);
+  void Bind(std::list<std::vector<std::shared_ptr<TaskRunner>>> list);
+  void UnBind(const std::shared_ptr<TaskRunner>& runner);
+  uint32_t GetRunningGroupSize();
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> UnBind();
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> ReleasePending();
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> RetainActiveAndUnschedulable();
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> Retain(const std::shared_ptr<TaskRunner>& runner);
 
-  // Sub-runner / group management (called from TaskRunner).
-  virtual void BindGroup(uint32_t runner_id,
-                         const std::shared_ptr<TaskRunner>& sub_runner) = 0;
-  virtual void UnBind(const std::shared_ptr<TaskRunner>& sub_runner) = 0;
-
-  // Stacking-mode support (sub-runner execution while parent runs).
-  virtual void SetStackingMode(bool stacking) = 0;
-  virtual void RunTask() = 0;
-
-  // Thread-local storage keyed per TaskRunner id.
-  virtual int32_t WorkerKeyCreate(uint32_t runner_id,
-                                  const std::function<void(void*)>& destruct) = 0;
-  virtual bool WorkerKeyDelete(uint32_t runner_id, int32_t key) = 0;
-  virtual bool WorkerSetSpecific(uint32_t runner_id, int32_t key, void* p) = 0;
-  virtual void* WorkerGetSpecific(uint32_t runner_id, int32_t key) = 0;
-  virtual void WorkerDestroySpecific(uint32_t runner_id) = 0;
-
-  // Static helpers used by TaskRunner::GetCurrentTaskRunner et al.
-  static std::shared_ptr<TaskRunner> GetCurrentTaskRunner();
+  inline bool GetStackingMode() { return is_stacking_mode_; }
+  inline void SetStackingMode(bool is_stacking_mode) { is_stacking_mode_ = is_stacking_mode; }
+  inline TimeDelta GetTimeRemaining() { return TimePoint::Now() - next_task_time_; }
+  inline uint32_t GetGroupId() {
+    return group_id_;
+  }
+  inline void SetGroupId(uint32_t id) {
+    group_id_ = id;
+  }
+  inline uint32_t FetchAndSubReuseCount() {
+    return --reuse_count_;
+  }
+  inline uint32_t FetchAndAddReuseCount() {
+    return ++reuse_count_;
+  }
   static bool IsTaskRunning();
+  bool RunTask();
+  void BeforeStart(std::function<void()> before_start) { before_start_ = before_start; }
+  void Start(bool in_new_thread = true);
+
+  virtual void SetName(const std::string& name) = 0;
+  virtual std::weak_ptr<Worker> GetSelf() = 0;
+
+ private:
+  friend class WorkerManager;
+  friend class TaskRunner;
+
+  static uint32_t GetCurrentWorkerId();
+  static std::shared_ptr<TaskRunner> GetCurrentTaskRunner();
+
+  std::unique_ptr<Task> GetNextTask();
+  void AddImmediateTask(std::unique_ptr<Task> task);
+  bool HasUnschedulableRunner();
+  void BalanceNoLock();
+  void SortNoLock();
+
+  bool HasTask();
+  bool HasMoreUrgentTask(TimeDelta min_wait_time, TimePoint now);
+
+  int32_t WorkerKeyCreate(uint32_t task_runner_id, const std::function<void(void *)>& destruct);
+  bool WorkerKeyDelete(uint32_t task_runner_id, int32_t key);
+  bool WorkerSetSpecific(uint32_t task_runner_id, int32_t key, void *p);
+  void *WorkerGetSpecific(uint32_t task_runner_id, int32_t key);
+  void WorkerDestroySpecific(uint32_t task_runner_id);
+  void WorkerDestroySpecificNoLock(uint32_t task_runner_id);
+  void WorkerDestroySpecifics();
+  std::array<WorkerKey, kWorkerKeysMax> GetMovedSpecificKeys(uint32_t task_runner_id);
+  void UpdateSpecificKeys(uint32_t task_runner_id, std::array<WorkerKey, kWorkerKeysMax> array);
+  std::array<void *, Worker::kWorkerKeysMax> GetMovedSpecific(uint32_t task_runner_id);
+  void UpdateSpecific(uint32_t task_runner_id, std::array<void *, kWorkerKeysMax> array);
+
+  std::thread thread_;
+  std::function<void()> before_start_;
+  std::string name_;
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> running_group_list_;
+  std::list<std::vector<std::shared_ptr<TaskRunner>>> pending_group_list_;
+  std::mutex running_mutex_;
+  std::mutex pending_mutex_;
+  std::map<uint32_t, std::array<Worker::WorkerKey, Worker::kWorkerKeysMax>> worker_key_map_;
+  std::map<uint32_t, std::array<void *, Worker::kWorkerKeysMax>> specific_map_;
+  std::queue<std::unique_ptr<Task>> immediate_task_queue_;
+  TimeDelta min_wait_time_;
+  TimePoint next_task_time_;
+  bool need_balance_;
+  bool is_stacking_mode_;
+  bool has_migration_data_;
+  bool is_schedulable_;
+  uint32_t reuse_count_;
+  uint32_t group_id_;
+  std::unique_ptr<Driver> driver_;
 };
 
 }  // namespace runner
