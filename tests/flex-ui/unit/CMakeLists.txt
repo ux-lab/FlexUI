@@ -32,12 +32,17 @@ add_executable(flexui_unit_tests
   reconciler_diff_test.cc
   # Task T5: layout yoga
   layout_yoga_test.cc
+  # Task T10: QuickJS backend unit tests
+  js_engine_quickjs_test.cc
+  # Task T12: JSVM smoke test (host: factory returns null)
+  js_engine_jsvm_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
   flexui_core_vdom
   flexui_core_reconciler
   flexui_core_layout
+  flexui_core_js_engine
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
