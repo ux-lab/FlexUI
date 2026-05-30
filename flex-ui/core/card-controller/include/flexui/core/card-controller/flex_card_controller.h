@@ -15,6 +15,8 @@
 #include "flexui/common/flexui_value.h"
 #include "flexui/core/card-controller/flex_card_state.h"
 #include "flexui/core/commit-pipeline/component_instance.h"
+#include "flexui/core/vdom/dom_node.h"
+#include "flexui/core/plugin-host/frontend.h"
 
 namespace flexui::core::scope_manager { class Scope; }
 
@@ -52,6 +54,9 @@ class FlexCardController {
   void AttachNodeContent(commit_pipeline::NodeHandle node_container);
   void DetachNodeContent();
 
+  // Debug accessor for tests (spec §8.5).
+  std::shared_ptr<flexui::core::vdom::DomNode> DebugLastDomTree() const;
+
  private:
   FlexCardControllerOptions options_;
   std::shared_ptr<scope_manager::Scope> scope_;
@@ -61,6 +66,8 @@ class FlexCardController {
                      std::function<void(flexui::common::FlexUIValue)>>
       event_handlers_;
   commit_pipeline::NodeHandle node_container_ = nullptr;
+  std::unique_ptr<plugin_host::IFrontend> frontend_;
+  std::shared_ptr<flexui::core::vdom::DomNode> last_dom_tree_;
 };
 
 }  // namespace flexui::core::card_controller

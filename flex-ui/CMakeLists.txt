@@ -9,4 +9,7 @@ option(FLEXUI_OHOS "Build Harmony NAPI + card host" OFF)
 
 add_subdirectory(common)
 add_subdirectory(core)
+add_subdirectory(components)
+add_subdirectory(api)
+add_subdirectory(plugin-a2ui)
 add_subdirectory(platforms)

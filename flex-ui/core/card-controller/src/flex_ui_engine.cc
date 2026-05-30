@@ -3,6 +3,9 @@
 #include "flexui/core/js-engine/js_engine_factory.h"
 #include "flexui/core/bridge/inprocess_bridge.h"
 #include "flexui/common/log_tag.h"
+#include "flexui/components/components_base_package.h"
+#include "flexui/api/api_base_package.h"
+#include "flexui/core/card-controller/frontends/card_js/card_js_frontend.h"
 
 namespace flexui::core::card_controller {
 
@@ -34,6 +37,26 @@ flexui::common::Error FlexUIEngine::Init(const FlexUIEngineConfig& cfg) {
   js_runner_ = std::make_shared<flexui::common::TaskRunner>("flexui-js");
   ui_runner_ = std::make_shared<flexui::common::TaskRunner>("flexui-ui");
   bridge_ = std::make_shared<bridge::InProcessBridge>(js_runner_, ui_runner_);
+
+  // Auto-register built-in packages.
+  {
+    auto pkg = flexui::components::MakeComponentsBasePackage();
+    auto e = plugins_->Install(std::move(pkg));
+    if (!e.ok()) return e;
+  }
+  {
+    auto pkg = flexui::api::MakeApiBasePackage();
+    auto e = plugins_->Install(std::move(pkg));
+    if (!e.ok()) return e;
+  }
+  {
+    plugin_host::FlexUIPlugin p;
+    p.name = "flexui-frontend-card-js";
+    p.frontends.push_back(
+        frontends::card_js::MakeCardJsRegistration());
+    auto e = plugins_->Install(std::move(p));
+    if (!e.ok()) return e;
+  }
 
   initialized_ = true;
   return flexui::common::Error::Ok();

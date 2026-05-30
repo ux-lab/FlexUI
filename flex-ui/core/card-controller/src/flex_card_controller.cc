@@ -1,7 +1,11 @@
 #include "flexui/core/card-controller/flex_card_controller.h"
 
+#include <memory>
+
 #include "flexui/core/card-controller/flex_ui_engine.h"
 #include "flexui/core/scope-manager/scope_manager.h"
+#include "flexui/core/plugin-host/frontend.h"
+#include "flexui/core/vdom/dom_node.h"
 #include "flexui/common/log_tag.h"
 
 namespace flexui::core::card_controller {
@@ -38,17 +42,34 @@ flexui::common::Error FlexCardController::Load() {
   FLEXUI_TLOG(Card, LoadEnter, INFO)
       << "scope=" << scope_id() << " uri=" << options_.bundle_uri;
   if (!scope_) {
-    return flexui::common::Error(flexui::common::ErrorCode::kInternal,
-                                 "no scope");
+    return flexui::common::Error(flexui::common::ErrorCode::kInternal, "no scope");
   }
-  auto err = scope_->Begin(nullptr);  // PoC: no snapshot
+  auto err = scope_->Begin(nullptr);
   if (!err.ok()) {
     state_.store(FlexCardState::kErrored);
     if (error_handler_) error_handler_(err);
     return err;
   }
-  // Frontend resolution + bundle eval lands in W7-W8. For W5-W6,
-  // we mark Running so lifecycle plumbing is testable end-to-end.
+
+  // Resolve frontend.
+  const auto* reg = FlexUIEngine::Instance().plugin_host()
+                        .FindFrontend(options_.bundle_type);
+  if (!reg) {
+    auto e = flexui::common::Error(flexui::common::ErrorCode::kNotFound,
+                                   "no frontend for bundle_type: " + options_.bundle_type);
+    state_.store(FlexCardState::kErrored);
+    if (error_handler_) error_handler_(e);
+    return e;
+  }
+  frontend_ = reg->factory();
+
+  plugin_host::BundleSource src;
+  src.uri  = options_.bundle_uri;
+  src.text = options_.bundle_inline;
+  frontend_->Initialize(*scope_, src);
+
+  last_dom_tree_ = frontend_->Render(*scope_, options_.initial_data);
+
   scope_->MarkRunning();
   state_.store(FlexCardState::kRunning);
   FLEXUI_TLOG(Card, LoadExit, INFO) << "scope=" << scope_id();
@@ -57,9 +78,13 @@ flexui::common::Error FlexCardController::Load() {
 
 flexui::common::Error FlexCardController::SetData(flexui::common::FlexUIValue data) {
   FLEXUI_TLOG(Card, SetData, DEBUG) << "scope=" << scope_id();
-  // Real frontend Render dispatch lands in W7-W8.
-  (void)data;
+  if (!frontend_ || !scope_) return flexui::common::Error::Ok();
+  last_dom_tree_ = frontend_->Render(*scope_, data);
   return flexui::common::Error::Ok();
+}
+
+std::shared_ptr<flexui::core::vdom::DomNode> FlexCardController::DebugLastDomTree() const {
+  return last_dom_tree_;
 }
 
 flexui::common::Error FlexCardController::CallMethod(
