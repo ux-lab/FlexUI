@@ -3,6 +3,7 @@ import { JSON } from '@kit.ArkTS';
 import util from '@ohos.util';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { UIContext } from '@kit.ArkUI';
+import router from '@ohos.router';
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AGenUIContainer, SurfaceManager, ISurfaceManagerListener, Surface, AGenUI, MeasurementManager, A2UIComponent } from '@agenui/agenui';
@@ -792,6 +793,14 @@ struct Index {
           }
           .margin({ right: 12 })
           .alignItems(VerticalAlign.Center)
+
+          Text('Waterfall')
+            .fontSize(16)
+            .fontColor(Color.White)
+            .margin({ right: 12 })
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/WaterfallDemoPage' });
+            })
 
           Text('Edit')
             .fontSize(16)

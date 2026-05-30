@@ -38,6 +38,11 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('testBundleData', decoded);
       hilog.info(DOMAIN, TAG, 'Test mode: testBundleDataB64 decoded length=%{public}d', decoded.length);
     }
+    const startPage = want.parameters?.startPage as string;
+    if (startPage) {
+      AppStorage.setOrCreate('startPage', startPage);
+      hilog.info(DOMAIN, TAG, 'Test mode: startPage=%{public}s', startPage);
+    }
   }
 
   onDestroy(): void {
@@ -48,13 +53,13 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    // Always load main demo page
-    windowStage.loadContent('pages/AGenUIDemoPage', (err) => {
+    const startPage = AppStorage.get<string>('startPage') ?? 'pages/AGenUIDemoPage';
+    windowStage.loadContent(startPage, (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
       }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: pages/AGenUIDemoPage');
+      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: %{public}s', startPage);
     });
   }
 
