@@ -26,9 +26,12 @@ add_executable(flexui_unit_tests
   task_runner_extended_test.cc
   worker_extended_test.cc
   coverage_boost_test.cc
+  # Task T2: vdom DomNode + DomArgument + NodeProps headers
+  vdom_dom_node_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
+  flexui_core_vdom
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
