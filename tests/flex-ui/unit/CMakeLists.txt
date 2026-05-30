@@ -30,11 +30,14 @@ add_executable(flexui_unit_tests
   vdom_dom_node_test.cc
   # Task T4: reconciler diff_utils + Mutation typedef
   reconciler_diff_test.cc
+  # Task T5: layout yoga
+  layout_yoga_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
   flexui_core_vdom
   flexui_core_reconciler
+  flexui_core_layout
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
