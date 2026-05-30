@@ -15,6 +15,7 @@ target_link_libraries(flexui_core_card_controller PUBLIC
   flexui_core_commit_pipeline
   flexui_core_bridge
   flexui_core_card_js_frontend
+  flexui_plugin_a2ui
   flexui_components
   flexui_api
   flexui_common

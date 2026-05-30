@@ -6,6 +6,7 @@
 #include "flexui/components/components_base_package.h"
 #include "flexui/api/api_base_package.h"
 #include "flexui/core/card-controller/frontends/card_js/card_js_frontend.h"
+#include "flexui/plugin_a2ui/a2ui_plugin.h"
 
 namespace flexui::core::card_controller {
 
@@ -55,6 +56,11 @@ flexui::common::Error FlexUIEngine::Init(const FlexUIEngineConfig& cfg) {
     p.frontends.push_back(
         frontends::card_js::MakeCardJsRegistration());
     auto e = plugins_->Install(std::move(p));
+    if (!e.ok()) return e;
+  }
+  {
+    auto pkg = flexui::plugin_a2ui::MakeA2UIPlugin();
+    auto e = plugins_->Install(std::move(pkg));
     if (!e.ok()) return e;
   }
 

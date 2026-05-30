@@ -30,6 +30,7 @@ FlexCardController::FlexCardController(FlexCardControllerOptions opts)
 }
 
 FlexCardController::~FlexCardController() {
+  frontend_.reset();
   if (state_.load() != FlexCardState::kDestroyed) Destroy();
 }
 
@@ -108,6 +109,10 @@ void FlexCardController::OnError(std::function<void(flexui::common::Error)> h) {
 
 flexui::common::Error FlexCardController::Destroy() {
   FLEXUI_TLOG(Card, DestroyEnter, INFO) << "scope=" << scope_id();
+  // Release frontend before scope — frontend may hold JS values that
+  // reference the JS context owned by the scope.
+  frontend_.reset();
+  last_dom_tree_.reset();
   if (scope_) {
     FlexUIEngine::Instance().scope_manager().DestroyScope(scope_->id());
     scope_.reset();

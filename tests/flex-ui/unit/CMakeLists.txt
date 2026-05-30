@@ -38,6 +38,17 @@ add_executable(flexui_unit_tests
   js_engine_jsvm_test.cc
   # Task T14: core coverage boost
   core_coverage_boost_test.cc
+  # W7-W8: component tests
+  components_text_test.cc
+  components_view_test.cc
+  components_image_test.cc
+  components_button_test.cc
+  components_scrollview_test.cc
+  components_base_package_test.cc
+  # W7-W8: API tests
+  api_test.cc
+  # W7-W8: C2 proof — dual-frontend parity
+  dual_frontend_parity_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
@@ -45,6 +56,13 @@ target_link_libraries(flexui_unit_tests PRIVATE
   flexui_core_reconciler
   flexui_core_layout
   flexui_core_js_engine
+  flexui_core_plugin_host
+  flexui_core_scope_manager
+  flexui_core_commit_pipeline
+  flexui_core_card_controller
+  flexui_components
+  flexui_api
+  flexui_plugin_a2ui
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
