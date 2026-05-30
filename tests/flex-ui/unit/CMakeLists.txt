@@ -58,9 +58,12 @@ add_executable(flexui_unit_tests_tsan
   worker_test.cc
   worker_manager_test.cc
   timer_test.cc
+  # Task T17: include QuickJS engine test in TSan sub-target
+  js_engine_quickjs_test.cc
 )
 target_link_libraries(flexui_unit_tests_tsan PRIVATE
   flexui_common
+  flexui_core_js_engine
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
