@@ -12,6 +12,8 @@ add_executable(flexui_unit_tests
   worker_manager_test.cc
   # Task 13: timer family
   timer_test.cc
+  # Task 14: persistent_object_map + hash
+  persistent_object_map_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
