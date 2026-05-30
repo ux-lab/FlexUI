@@ -10,6 +10,8 @@ add_executable(flexui_unit_tests
   # Task 12: worker family
   worker_test.cc
   worker_manager_test.cc
+  # Task 13: timer family
+  timer_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common

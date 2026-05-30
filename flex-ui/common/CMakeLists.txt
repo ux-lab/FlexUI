@@ -22,6 +22,11 @@ target_sources(flexui_common PRIVATE
   src/worker.cc
   src/worker_impl.cc
   src/worker_manager.cc
+  # Task 13: timer family
+  src/base_timer.cc
+  src/one_shot_timer.cc
+  src/repeating_timer.cc
+  src/idle_timer.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.
