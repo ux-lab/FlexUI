@@ -5,5 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(FLEXUI_OHOS "Build Harmony NAPI + card host" OFF)
+
 add_subdirectory(common)
 add_subdirectory(core)
+add_subdirectory(platforms)
