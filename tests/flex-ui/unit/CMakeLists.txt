@@ -20,6 +20,12 @@ add_executable(flexui_unit_tests
   serializer_roundtrip_test.cc
   # Task 17: error module (FlexUI-original)
   error_test.cc
+  # Task 19: coverage gate — extended tests
+  string_view_extended_test.cc
+  serializer_extended_test.cc
+  task_runner_extended_test.cc
+  worker_extended_test.cc
+  coverage_boost_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
