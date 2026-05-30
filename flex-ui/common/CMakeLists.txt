@@ -5,6 +5,7 @@ target_include_directories(flexui_common
 target_sources(flexui_common PRIVATE
   # Sources appended incrementally by later tasks in the W1-W2 absorption plan.
   src/string_view.cc
+  src/string_utils.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.
