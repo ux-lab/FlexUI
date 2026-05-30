@@ -14,6 +14,8 @@ add_executable(flexui_unit_tests
   timer_test.cc
   # Task 14: persistent_object_map + hash
   persistent_object_map_test.cc
+  # Task 15: flexui_value (renamed from hippy_value)
+  flexui_value_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
