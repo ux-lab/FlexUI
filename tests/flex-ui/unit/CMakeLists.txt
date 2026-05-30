@@ -18,6 +18,8 @@ add_executable(flexui_unit_tests
   flexui_value_test.cc
   # Task 16: serializer + deserializer roundtrip
   serializer_roundtrip_test.cc
+  # Task 17: error module (FlexUI-original)
+  error_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
