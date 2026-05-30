@@ -1,7 +1,7 @@
 import router from '@ohos.router';
 import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { SurfaceManager } from '@agenui/agenui';
+import { SurfaceManager, ISurfaceManagerListener, Surface } from '@agenui/agenui';
 import { AGenUISurfaceCard } from '../components/AGenUISurfaceCard';
 
 const TAG = 'WaterfallDemoPage';
@@ -55,7 +55,7 @@ const MOCK_CARDS: MockCard[] = [
   },
   {
     title: 'Travel Guide: Kyoto',
-    body: 'Spring in Kyoto is breathtaking. Cherry blossoms typically peak late March to early April. Must-see spots include Maruyama Park, Philosopher\'s Path, Fushimi Inari, and the Arashiyama bamboo grove. Book accommodation 3+ months early — rooms fill up fast during hanami season.',
+    body: 'Spring in Kyoto is breathtaking. Cherry blossoms typically peak late March to early April. Must-see spots include Maruyama Park, Philosopher Path, Fushimi Inari, and the Arashiyama bamboo grove. Book accommodation 3+ months early — rooms fill up fast during hanami season.',
     bgColor: '#F0F8FF'
   },
   {
@@ -65,7 +65,7 @@ const MOCK_CARDS: MockCard[] = [
   },
   {
     title: 'Book Note',
-    body: 'Atomic Habits — James Clear argues that 1% improvements compound dramatically over time. Focus on systems, not goals. Identity-based habits outlast outcome-based ones: become the person who exercises daily rather than trying to lose weight. Highly recommended.',
+    body: 'Atomic Habits by James Clear argues that 1% improvements compound dramatically over time. Focus on systems, not goals. Identity-based habits outlast outcome-based ones: become the person who exercises daily rather than trying to lose weight. Highly recommended.',
     bgColor: '#F8F0FF'
   },
   {
@@ -133,54 +133,96 @@ function buildCardJson(surfaceId: string, card: MockCard): string {
     `]}}`;
 }
 
+class WaterfallSurfaceListener implements ISurfaceManagerListener {
+  private page: WaterfallDemoPage;
+
+  constructor(page: WaterfallDemoPage) {
+    this.page = page;
+  }
+
+  onCreateSurface(surface: Surface): void {
+    hilog.info(DOMAIN, TAG, 'onCreateSurface: %{public}s', surface.surfaceId);
+    this.page.onSurfaceReady(surface.surfaceId);
+  }
+
+  onDeleteSurface(surface: Surface): void {
+    hilog.info(DOMAIN, TAG, 'onDeleteSurface: %{public}s', surface.surfaceId);
+  }
+
+  onError(surface: Surface | null, code: number, message: string): void {
+    const sid = surface ? surface.surfaceId : '<none>';
+    hilog.error(DOMAIN, TAG, 'surface error sid=%{public}s code=%{public}d: %{public}s', sid, code, message);
+  }
+}
+
 @Entry
 @Component
 struct WaterfallDemoPage {
   @State surfaceIds: string[] = [];
+  @State debugLabel: string = 'initializing...';
   private loadCount: number = 0;
+  private pendingCount: number = 0;
   private isLoading: boolean = false;
   private surfaceManager: SurfaceManager | null = null;
 
+  onSurfaceReady(surfaceId: string): void {
+    this.surfaceIds = [...this.surfaceIds, surfaceId];
+    this.pendingCount = this.pendingCount > 0 ? this.pendingCount - 1 : 0;
+    if (this.pendingCount === 0) {
+      this.isLoading = false;
+    }
+    this.debugLabel = `cards: ${this.surfaceIds.length}, pending: ${this.pendingCount}`;
+    hilog.info(DOMAIN, TAG, 'onSurfaceReady total=%{public}d pending=%{public}d', this.surfaceIds.length, this.pendingCount);
+  }
+
   aboutToAppear(): void {
+    hilog.info(DOMAIN, TAG, 'aboutToAppear');
     const context = getContext(this) as common.UIAbilityContext;
     this.surfaceManager = new SurfaceManager(context);
-    hilog.info(DOMAIN, TAG, 'SurfaceManager created');
+    this.surfaceManager.addListener(new WaterfallSurfaceListener(this));
+    hilog.info(DOMAIN, TAG, 'SurfaceManager ready, calling loadMore(12)');
+    this.debugLabel = 'SurfaceManager created, loading...';
     this.loadMore(12);
   }
 
   aboutToDisappear(): void {
+    hilog.info(DOMAIN, TAG, 'aboutToDisappear, destroying SurfaceManager');
     if (this.surfaceManager !== null) {
       this.surfaceManager.destroy();
       this.surfaceManager = null;
-      hilog.info(DOMAIN, TAG, 'SurfaceManager destroyed');
     }
   }
 
   private loadMore(n: number): void {
-    if (this.isLoading || this.surfaceManager === null) {
+    if (this.isLoading) {
+      hilog.warn(DOMAIN, TAG, 'loadMore(%{public}d) skipped: already loading', n);
+      return;
+    }
+    if (this.surfaceManager === null) {
+      hilog.error(DOMAIN, TAG, 'loadMore(%{public}d) skipped: surfaceManager is null', n);
       return;
     }
     this.isLoading = true;
+    this.pendingCount += n;
+    hilog.info(DOMAIN, TAG, 'loadMore n=%{public}d loadCount=%{public}d pending=%{public}d', n, this.loadCount, this.pendingCount);
 
-    const newIds: string[] = [];
     this.surfaceManager.beginTextStream();
     for (let i = 0; i < n; i++) {
       const idx = this.loadCount;
       const surfaceId = `wf_card_${idx}`;
       const card = MOCK_CARDS[idx % MOCK_CARDS.length];
       this.loadCount++;
-      newIds.push(surfaceId);
 
-      this.surfaceManager!.receiveTextChunk(
-        `{"version":"${API_VERSION}","createSurface":{"surfaceId":"${surfaceId}","catalogId":"${CATALOG_URL}"}}`
-      );
-      this.surfaceManager!.receiveTextChunk(buildCardJson(surfaceId, card));
+      const createMsg =
+        `{"version":"${API_VERSION}","createSurface":{"surfaceId":"${surfaceId}","catalogId":"${CATALOG_URL}"}}`;
+      const updateMsg = buildCardJson(surfaceId, card);
+
+      hilog.info(DOMAIN, TAG, 'sending surfaceId=%{public}s title=%{public}s', surfaceId, card.title);
+      this.surfaceManager!.receiveTextChunk(createMsg);
+      this.surfaceManager!.receiveTextChunk(updateMsg);
     }
     this.surfaceManager.endTextStream();
-
-    this.surfaceIds = [...this.surfaceIds, ...newIds];
-    this.isLoading = false;
-    hilog.info(DOMAIN, TAG, 'Loaded %{public}d cards, total: %{public}d', n, this.surfaceIds.length);
+    hilog.info(DOMAIN, TAG, 'endTextStream done, waiting for onCreateSurface callbacks');
   }
 
   build() {
@@ -198,6 +240,10 @@ struct WaterfallDemoPage {
           .fontWeight(FontWeight.Medium)
           .fontColor(Color.White)
           .layoutWeight(1)
+        Text(this.debugLabel)
+          .fontSize(11)
+          .fontColor('#CCBBFF')
+          .margin({ right: 12 })
       }
       .width('100%')
       .height(56)
@@ -218,6 +264,7 @@ struct WaterfallDemoPage {
       .layoutWeight(1)
       .backgroundColor(COLOR_BG)
       .onReachEnd(() => {
+        hilog.info(DOMAIN, TAG, 'onReachEnd, isLoading=%{public}s', String(this.isLoading));
         if (!this.isLoading) {
           this.loadMore(8);
         }

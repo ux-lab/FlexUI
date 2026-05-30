@@ -3,3 +3,4 @@
 # Local signing config and bundle name — do not commit
 playground/harmony/build-profile.json5
 playground/harmony/AppScope/app.json5
+tests/cpp/build
