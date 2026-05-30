@@ -31,6 +31,10 @@ export class FlexUIEngine {
     FlexUIEngine.initialized = false;
   }
 
+  static dumpDiagnostics(): void {
+    flexui.flexUiEngineDumpDiagnostics();
+  }
+
   static isInitialized(): boolean {
     return FlexUIEngine.initialized;
   }

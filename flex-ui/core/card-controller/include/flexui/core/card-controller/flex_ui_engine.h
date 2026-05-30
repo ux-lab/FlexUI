@@ -31,6 +31,7 @@ class FlexUIEngine {
   flexui::common::Error Install(plugin_host::FlexUIPlugin plugin);
   flexui::common::Error Uninstall(const std::string& plugin_name);
   void Shutdown();
+  void DumpDiagnostics();
 
   // Internal accessors used by FlexCardController.
   js_engine::IJsEngine&             js_engine();

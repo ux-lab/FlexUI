@@ -101,4 +101,17 @@ bridge::IBridge& FlexUIEngine::bridge() { return *bridge_; }
 flexui::common::TaskRunner& FlexUIEngine::js_runner() { return *js_runner_; }
 flexui::common::TaskRunner& FlexUIEngine::ui_runner() { return *ui_runner_; }
 
+void FlexUIEngine::DumpDiagnostics() {
+  FLEXUI_TLOG(Engine, Diagnostics, INFO)
+      << "begin diagnostics; initialized=" << initialized_;
+  if (!initialized_) return;
+  FLEXUI_TLOG(Engine, Diagnostics, INFO)
+      << "backend=" << (engine_ ? engine_->BackendName() : "<null>");
+  FLEXUI_TLOG(Engine, Diagnostics, INFO)
+      << "plugin_count=" << plugins_->PluginCount();
+  FLEXUI_TLOG(Engine, Diagnostics, INFO)
+      << "scope_count=" << scopes_->ScopeCount();
+  FLEXUI_TLOG(Engine, Diagnostics, INFO) << "end diagnostics";
+}
+
 }  // namespace flexui::core::card_controller

@@ -38,10 +38,18 @@ static napi_value Shutdown(napi_env env, napi_callback_info) {
   return undef;
 }
 
+static napi_value DumpDiagnostics(napi_env env, napi_callback_info) {
+  cc::FlexUIEngine::Instance().DumpDiagnostics();
+  napi_value undef;
+  napi_get_undefined(env, &undef);
+  return undef;
+}
+
 napi_value RegisterEngineMethods(napi_env env, napi_value exports) {
   napi_property_descriptor desc[] = {
-      {"flexUiEngineInit",     nullptr, Init,     nullptr, nullptr, nullptr, napi_default, nullptr},
-      {"flexUiEngineShutdown", nullptr, Shutdown, nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"flexUiEngineInit",            nullptr, Init,            nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"flexUiEngineShutdown",        nullptr, Shutdown,        nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"flexUiEngineDumpDiagnostics", nullptr, DumpDiagnostics, nullptr, nullptr, nullptr, napi_default, nullptr},
   };
   napi_define_properties(env, exports, sizeof(desc) / sizeof(*desc), desc);
   return exports;
