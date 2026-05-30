@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/AGenUIDemoPage",
-    "pages/WaterfallDemoPage"
+    "pages/WaterfallDemoPage",
+    "pages/FlexCardWaterfallDemoPage"
   ]
 }

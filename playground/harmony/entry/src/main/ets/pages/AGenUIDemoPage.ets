@@ -802,6 +802,14 @@ struct Index {
               router.pushUrl({ url: 'pages/WaterfallDemoPage' });
             })
 
+          Text('FlexCard')
+            .fontSize(16)
+            .fontColor(Color.White)
+            .margin({ right: 12 })
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/FlexCardWaterfallDemoPage' });
+            })
+
           Text('Edit')
             .fontSize(16)
             .fontColor(Color.White)
