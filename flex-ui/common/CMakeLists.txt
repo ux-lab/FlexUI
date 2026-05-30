@@ -13,6 +13,11 @@ target_sources(flexui_common PRIVATE
   src/log_tag.cc
   src/platform/log_sink_harmony.cc
   src/platform/log_sink_android.cc
+  # Task 11: task + task_runner
+  src/task.cc
+  src/idle_task.cc
+  src/task_runner.cc
+  src/worker_stub.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.

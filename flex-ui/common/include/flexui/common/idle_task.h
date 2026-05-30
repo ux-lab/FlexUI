@@ -1,0 +1,82 @@
+/*
+ * Tencent is pleased to support the open source community by making
+ * Hippy available.
+ *
+ * Copyright (C) 2022 THL A29 Limited, a Tencent company.
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Modified by the FlexUI authors. This file is derived from
+ * modules/footstone/include/footstone/idle_task.h in the Hippy project.
+ *
+ * The FlexUI modifications:
+ *   - Moved namespace `footstone` -> `flexui::common`.
+ *   - Renamed include path `footstone/...` -> `flexui/common/...`.
+ *   - No behavioral change.
+ *
+ * The original Apache-2.0 license terms above continue to apply.
+ */
+
+#pragma once
+
+#include <atomic>
+#include <cstdint>
+#include <functional>
+
+#include "flexui/common/time_delta.h"
+#include "flexui/common/time_point.h"
+
+namespace flexui::common {
+inline namespace runner {
+
+class IdleTask {
+ public:
+  struct IdleCbParam {
+    bool did_time_out;
+    TimeDelta res_time;
+  };
+
+  IdleTask(std::function<void(const IdleCbParam &)> unit, TimeDelta timeout);
+  IdleTask();
+  ~IdleTask() = default;
+
+  inline uint32_t GetId() { return id_; }
+  inline auto GetUnit() { return unit_; }
+  inline void SetTimeout(TimeDelta timeout) {
+    timeout_ = timeout;
+  }
+  inline TimeDelta GetTimeout() {
+    return timeout_;
+  }
+  inline TimePoint GetBeginTime() {
+    return begin_time_;
+  }
+  inline void SetUnit(std::function<void(const IdleCbParam &)> unit) { unit_ = unit; }
+  inline void Run(const IdleCbParam &param) {
+    if (unit_) {
+      unit_(param);
+    }
+  }
+
+ private:
+  uint32_t id_;
+  TimeDelta timeout_;
+  TimePoint begin_time_;
+  std::function<void(const IdleCbParam &)> unit_;  // A unit of work to be processed
+};
+
+}  // namespace runner
+}  // namespace flexui::common
