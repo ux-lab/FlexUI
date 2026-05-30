@@ -9,6 +9,7 @@ target_sources(flexui_common PRIVATE
   src/logging.cc
   src/log_settings.cc
   src/log_settings_state.cc
+  src/log_sink.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.

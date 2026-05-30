@@ -55,4 +55,11 @@ else()
 endif()
 
 enable_testing()
+
+add_library(flexui_test_support STATIC
+  support/capturing_log_sink.cc
+)
+target_include_directories(flexui_test_support PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+target_link_libraries(flexui_test_support PUBLIC flexui_common)
+
 add_subdirectory(unit)

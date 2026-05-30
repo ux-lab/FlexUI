@@ -4,9 +4,11 @@ add_executable(flexui_unit_tests
   string_view_test.cc
   string_utils_test.cc
   logging_test.cc
+  log_sink_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
+  flexui_test_support
   GTest::gtest
   GTest::gtest_main
 )
