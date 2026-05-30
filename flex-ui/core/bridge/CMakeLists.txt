@@ -6,4 +6,5 @@ target_link_libraries(flexui_core_bridge PUBLIC flexui_common)
 target_sources(flexui_core_bridge PRIVATE
   src/encoder.cc
   src/decoder.cc
+  src/inprocess_bridge.cc
 )
