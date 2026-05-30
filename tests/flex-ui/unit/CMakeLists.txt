@@ -40,6 +40,8 @@ add_executable(flexui_unit_tests
   core_coverage_boost_test.cc
   # W5-W6 T2: bridge roundtrip
   bridge_roundtrip_test.cc
+  # W5-W6 T4: plugin host
+  plugin_host_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
@@ -48,6 +50,7 @@ target_link_libraries(flexui_unit_tests PRIVATE
   flexui_core_layout
   flexui_core_js_engine
   flexui_core_bridge
+  flexui_core_plugin_host
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
