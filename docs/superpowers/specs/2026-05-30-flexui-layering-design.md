@@ -59,9 +59,9 @@ The following are explicitly out of scope for the PoC and must not creep in:
 └─────────────────────────────────┬────────────────────────────────────┘
                                   │ Public SDK API
 ┌─────────────────────────────────▼────────────────────────────────────┐
-│ Host Layer (flex-ui/host/)                                           │
-│   • host/card/  : FlexCardController + FlexCard ETS component        │
-│   • host/page/  : (reserved for future Page-level hosting)           │
+│ Host Layer (flex-ui/platforms/{platform}/card/)                      │
+│   • platforms/{p}/card/ : FlexCardController + FlexCard ETS component│
+│   • platforms/{p}/page/ : (reserved for future Page-level hosting)   │
 └─────────────────────────────────┬────────────────────────────────────┘
                                   │ NAPI / JNI / Obj-C++ binding
 ┌─────────────────────────────────▼────────────────────────────────────┐
@@ -163,7 +163,8 @@ FlexUI/
 │   │   ├── bridge/                  # binary serialization + IBridge
 │   │   ├── scope-manager/           # per-card JSContext + Snapshot interface
 │   │   ├── commit-pipeline/         # mutation dispatch
-│   │   └── plugin-host/             # 4 registries
+│   │   ├── plugin-host/             # 4 registries
+│   │   └── card-controller/         # platform-neutral FlexCardController logic
 │   ├── components/                  # 5 built-in components (capi)
 │   │   ├── text/
 │   │   ├── image/
@@ -176,18 +177,17 @@ FlexUI/
 │   ├── plugin-a2ui/                 # A2UI frontend plugin (PoC MVP)
 │   │   ├── frontend/
 │   │   └── components/              # empty in PoC
-│   ├── host/
-│   │   ├── card/                    # PoC: FlexCardController + FlexCard @Component
-│   │   │   ├── flex_card_controller.{h,cc}
-│   │   │   └── platforms/
-│   │   │       ├── harmony/ets/
-│   │   │       ├── android/kotlin/  # PoC stub
-│   │   │       └── ios/swift/       # Phase 3+
-│   │   └── page/                    # reserved, README explaining future direction
-│   └── platforms/                   # cross-language bridge implementations
-│       ├── harmony/napi/
-│       ├── android/jni/             # PoC stub
-│       └── ios/objcxx/              # Phase 3+
+│   └── platforms/                   # all platform-specific code: bridge + card host
+│       ├── harmony/
+│       │   ├── napi/                # NAPI binding to core
+│       │   └── card/                # FlexCard ETS @Component + NodeContent mount
+│       │     └── (future) page/     # reserved, README explaining direction
+│       ├── android/
+│       │   ├── jni/                 # PoC stub
+│       │   └── card/                # FlexCardView stub
+│       └── ios/                     # Phase 3+
+│           ├── objcxx/
+│           └── card/
 │
 ├── playground/harmony/entry/src/main/ets/pages/
 │   ├── AGenUIDemoPage.ets           # unchanged
@@ -232,11 +232,13 @@ Estimated code volume: absorbed ~30K LOC + FlexUI self-developed ~15K LOC = PoC 
 
 ### 4.6 Hosting: NodeContent (HarmonyOS API 12+)
 
-HarmonyOS hosting uses `NodeContent` + `ContentSlot`, not `XComponent`. NodeContent is designed for direct C-API node tree mounting and natively supports mixing capi components and ets-builder components in one card. The PoC accepts API 12+ as the version floor.
+HarmonyOS hosting (`flex-ui/platforms/harmony/card/`) uses `NodeContent` + `ContentSlot`, not `XComponent`. NodeContent is designed for direct C-API node tree mounting and natively supports mixing capi components and ets-builder components in one card. The PoC accepts API 12+ as the version floor.
 
-Android hosting (interfaces only in PoC): `FlexCardView extends ViewGroup`, native node tree appended via JNI.
+Android hosting (interfaces only in PoC, under `flex-ui/platforms/android/card/`): `FlexCardView extends ViewGroup`, native node tree appended via JNI.
 
-iOS hosting (Phase 3+): `FlexCardView : UIView`, node tree appended via Obj-C++ binding.
+iOS hosting (Phase 3+, under `flex-ui/platforms/ios/card/`): `FlexCardView : UIView`, node tree appended via Obj-C++ binding.
+
+Future `FlexPage` hosting will land as a sibling `page/` module under each platform directory, sharing the same `FlexUIEngine` singleton and plugin registries.
 
 ### 4.7 Component Layer — Dual Mode
 
@@ -387,7 +389,7 @@ All cross-thread payloads are encoded with the binary serializer absorbed from H
 | JS Engine | `IJsEngine`, `IJsContext`, `IJsValue` | QuickJS + JSVM | QuickJS | (Phase 3+) |
 | Bridge | `IBridge` | NAPI | JNI stub | (Phase 3+) |
 | Component instance | `ComponentInstance` + per-component header | ArkUI C-API | stub returning fixed size | (Phase 3+) |
-| Host | host/card abstract controller | ETS `FlexCard` + NodeContent | `FlexCardView` stub | (Phase 3+) |
+| Host | abstract controller in `core/card-controller/` | ETS `FlexCard` + NodeContent under `platforms/harmony/card/` | `FlexCardView` stub under `platforms/android/card/` | (Phase 3+) |
 
 Each PoC component ships interface + cross-platform logic + Harmony impl + Android stub. Android stub compiles and links but logs `NOT_IMPLEMENTED` at runtime. Estimated overhead vs Harmony-only: ~20% additional code volume.
 
@@ -409,7 +411,7 @@ Each PoC component ships interface + cross-platform logic + Harmony impl + Andro
 | Phase 1 | 4–6 weeks | a2ui-json frontend completeness; Android Bridge JNI + component porting | untouched |
 | Phase 2 | 8–12 weeks | a2ui complex components migrated to plugin-a2ui in batches; `AGenUIEngine` facade routes to `FlexCardController` internally | facade preserves old API, internals replaced |
 | Phase 3 | TBD | retire legacy `core/`; iOS implementation; streaming mode reborn as plugin-a2ui feature | retired |
-| Phase 4+ | TBD | `host/page/` lands; FlexUI gains Page-level hosting parallel to FlexCard | n/a |
+| Phase 4+ | TBD | `platforms/{platform}/page/` lands; FlexUI gains Page-level hosting parallel to FlexCard | n/a |
 
 ### 5.3 Phase 2 Facade Sketch
 
@@ -455,7 +457,143 @@ Streaming semantics in the Phase 2 facade are downgraded to "complete-JSON-then-
 
 - Android stub compiles, links, runs (logs `NOT_IMPLEMENTED` at runtime for unimplemented surfaces). Failure to compile on Android fails the PoC, even if HarmonyOS passes.
 
-## 7. Risk Register
+### 6.4 Test Coverage Gate
+
+All three test tiers (unit, integration, E2E — see §7) must be green on HarmonyOS before PoC is accepted. Specifically:
+
+- Unit tests: ≥ 80% line coverage on `flex-ui/core/`, ≥ 70% on `flex-ui/components/`.
+- Integration tests: every public API on `FlexUIEngine` and `FlexCardController` has at least one happy-path and one error-path test.
+- E2E tests: the eight scenarios listed in §7.3 all pass on a real HarmonyOS device via HDC.
+
+## 7. Test Methodology
+
+Testing is a first-class deliverable of this PoC, not an afterthought. The framework is the foundation for future business cards, so every layer must be exercised by automated tests before phase transitions are allowed.
+
+### 7.1 Unit Tests (C++)
+
+- Framework: GoogleTest, hosted under `tests/flex-ui/unit/`.
+- Independent CMake target `flex-ui-unit-tests`, runnable on host (macOS / Linux), no device required.
+- Coverage targets:
+  - `core/vdom/` — DomNode construction, prop/style/event map invariants.
+  - `core/reconciler/` — diff algorithm correctness (table-driven: old tree → new tree → expected mutation list).
+  - `core/layout/` — Yoga integration: known input style → expected layout result.
+  - `core/scope-manager/` — Scope lifecycle state machine; concurrent Scope create/destroy.
+  - `core/plugin-host/` — registration, conflict detection, uninstall.
+  - `core/bridge/serialization/` — round-trip encoding.
+  - `core/js-engine/quickjs/` — eval, global injection, GC root pinning.
+  - `core/js-engine/jsvm/` — same surface as QuickJS (Harmony only).
+  - `components/*` — props parsing, measure correctness; ArkUI calls mocked via a `NodeApiTestDouble`.
+- Sanitizer matrix: ASan + UBSan by default; TSan on a curated subset (Scope manager, commit pipeline) to catch threading regressions early.
+
+### 7.2 Integration Tests (C++)
+
+- Hosted under `tests/flex-ui/integration/`.
+- Exercise the engine through public API (`FlexUIEngine::Init`, `FlexCardController::Load/SetData/Destroy`) end-to-end on the host, with platform impl replaced by a `TestComponentBackend` that records all ArkUI calls instead of executing them.
+- Must cover:
+  - Engine init + plugin install + uninstall.
+  - Card lifecycle (load → render → setData → destroy) for both `card-js` and `a2ui-json` frontends.
+  - **Dual-frontend golden test (the C2 proof):** load the same A2UI JSON via both frontends, assert resulting DomNode trees are byte-equal and the recorded ArkUI mutation streams are identical.
+  - Plugin extension: register a custom component / api / loader / frontend, verify it is reachable from JS.
+  - Error paths: malformed bundle, missing component type, JS throw inside `render`, plugin name collision.
+
+### 7.3 E2E Automation Tests (on-device, HarmonyOS)
+
+- Framework: **hmnextauto** (uiautomator2-compatible) + pytest, the project's existing HarmonyOS automation stack.
+- Hosted under `tests/flex-ui/e2e/`, layout aligned with FlexUI's existing test conventions for the harness.
+- Run target: real HarmonyOS device or emulator via HDC.
+- Each test installs the `playground/harmony` build, drives a specific scenario, asserts state via accessibility tree + screenshot diffs.
+- **PoC must include these eight scenarios** (failure of any blocks PoC acceptance):
+  1. `test_engine_init_and_destroy` — cold start, engine init, install plugin-a2ui, destroy engine; no leaks reported by HiLog.
+  2. `test_card_js_first_paint` — launch `FlexCardWaterfallDemoPage`, first card-js bundle paints within 80 ms (recorded baseline).
+  3. `test_a2ui_json_first_paint` — same, for a2ui-json frontend.
+  4. `test_dual_frontend_visual_parity` — render the same A2UI JSON via both frontends in adjacent cards; screenshot diff ≤ 1 pixel tolerance per channel.
+  5. `test_setdata_updates_view` — trigger `setData` from native via controller; assert visible text changes within one frame.
+  6. `test_event_round_trip` — tap a Button in card, assert JS handler runs and triggers `setData`, view updates.
+  7. `test_waterfall_scroll_smoothness` — scroll the 12-card waterfall through 5 viewports; assert no frame > 32 ms.
+  8. `test_card_isolation` — two cards in different states; setData on card A must not affect card B's DOM or JS state.
+- E2E tests must log device-side HiLog + host-side pytest log into a unified artifact directory for post-mortem.
+
+### 7.4 Coexistence Smoke Test
+
+- A dedicated playground page mounts both `AGenUIContainer` (legacy surface) and `FlexCard` (new) on screen simultaneously, with independent data. The E2E suite includes `test_coexistence_no_interference` asserting both render and both respond to taps.
+
+## 8. Logging and Observability
+
+The PoC is a foundation layer for all future business cards. When something is wrong, the answer must be in the log — not in a debugger. Logging is therefore a hard requirement, not optional.
+
+### 8.1 Principles
+
+- **Every architectural boundary crossing logs at DEBUG.** That includes: every `FlexUIEngine` / `FlexCardController` public API entry and exit, every plugin install/uninstall, every Scope state transition, every mutation batch commit, every JS↔native call, every NodeContent mount/unmount.
+- **Every error logs at ERROR with full context.** Stack trace, Scope id, root id, last mutation id, last JS function name.
+- **Every WARN explains what is degraded and why** (e.g. JSVM unavailable → falling back to QuickJS).
+- **Logs must be greppable.** Use stable string prefixes per subsystem, never localized text.
+
+### 8.2 Log Tag Convention
+
+All logs go through `flex-ui/common/log/`, which wraps HiLog on HarmonyOS, `__android_log_print` on Android, `os_log` on iOS (Phase 3+).
+
+Tag format: `FLEXUI/<subsystem>/<event>`. Examples:
+
+- `FLEXUI/Engine/Init`
+- `FLEXUI/Engine/InstallPlugin`
+- `FLEXUI/Scope/Create`
+- `FLEXUI/Scope/StateChange` (with from/to states)
+- `FLEXUI/Bridge/JsToNative`
+- `FLEXUI/Bridge/NativeToJs`
+- `FLEXUI/Frontend/CardJs/Render`
+- `FLEXUI/Frontend/A2uiJson/Bind`
+- `FLEXUI/Reconciler/Diff` (with mutation count)
+- `FLEXUI/Layout/Calculate` (with node count, duration)
+- `FLEXUI/CommitPipeline/Apply` (with mutation count, duration)
+- `FLEXUI/Component/<Name>/Create|Update|Destroy`
+- `FLEXUI/NodeContent/AddNode|RemoveNode`
+
+### 8.3 Log Levels
+
+| Level | Used for | Default in build |
+|---|---|---|
+| ERROR | Unrecoverable failure, exception caught at boundary | always on |
+| WARN | Degraded path, fallback taken | always on |
+| INFO | Major lifecycle events (engine init, card load, card destroy) | always on |
+| DEBUG | Every cross-layer call; mutation list summaries; layout durations | on by default in PoC; gated by `FLEXUI_DEBUG_LOG` build flag in release |
+| VERBOSE | Per-mutation, per-prop, per-JS-call dumps | off by default; enabled via runtime flag for targeted debugging |
+
+The PoC defaults to **DEBUG on** so on-device captures yield maximum diagnostic value. Release builds (Phase 1+) compile DEBUG out unless `FLEXUI_DEBUG_LOG=ON`.
+
+### 8.4 Mandatory Log Coverage Points
+
+These must be present in PoC code; missing any of them is a PR-blocker:
+
+| Subsystem | Required log points |
+|---|---|
+| `FlexUIEngine` | Init enter/exit (with config), install/uninstall (with plugin name), destroy enter/exit |
+| `FlexCardController` | constructor, load enter/exit/error, setData (with diff stats), callMethod, onEvent fired, destroy enter/exit |
+| `ScopeManager` | Scope create (with id, snapshot used?), inject API, eval bundle (size, duration), state transitions, destroy |
+| `Reconciler` | diff enter (root id, old/new node counts), exit (mutation count, duration) |
+| `Layout` | calculate enter (root id, constraints), exit (duration, dirty count) |
+| `CommitPipeline` | apply enter (root id, mutation count), per-mutation kind + node id at VERBOSE, exit |
+| `Bridge` | every JS→native call (module, method, arg byte size), every native→JS event (scope id, node id, event type) |
+| `Component` | every Create/Update/Destroy with node id + view name |
+| `Plugin` | install (name, extension counts), uninstall, conflict detection |
+| `Frontend` | initialize (bundle type, size), render (input data size, output node count, duration) |
+| `JS engine` | uncaught exception, GC pressure events, snapshot serialize/deserialize duration |
+
+### 8.5 Structured Diagnostic Dumps
+
+`FlexUIEngine` exposes a `DumpDiagnostics()` method (debug build only) that synchronously emits:
+
+- Engine config + installed plugin list.
+- All active Scope ids, root ids, state, last commit timestamp.
+- Last 16 mutation batches per Scope (ring buffer).
+- Last 16 JS errors per Scope.
+
+This is invoked at the start of every E2E test (§7.3) and on uncaught error. The dump is the single artifact a triager opens first.
+
+### 8.6 Cross-Platform Logging Discipline
+
+The `flex-ui/common/log/` abstraction takes a tag, level, and format string; platform impl chooses the sink. **No subsystem code uses HiLog / Android Log / NSLog directly.** This keeps the log surface uniform across platforms and prevents accidental log-level drift.
+
+## 9. Risk Register
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -469,13 +607,13 @@ Streaming semantics in the Phase 2 facade are downgraded to "complete-JSON-then-
 | 8 | ets-builder ↔ NodeContent compatibility / perf | Low-Medium | PoC validates interface only; full validation in Phase 1+. |
 | 9 | Cross-platform interface design ossifies prematurely | Medium | Write Android stub during PoC, not after — if stub can't compile, interface is wrong. |
 
-## 8. Glossary
+## 10. Glossary
 
 | Term | Meaning |
 |---|---|
 | **FlexUI** | The framework (kernel + plugin host + component layer + APIs). |
-| **FlexCard** | The card-hosting form of FlexUI (`host/card/`). |
-| **FlexPage** | Future page-hosting form of FlexUI (`host/page/`), Phase 4+. |
+| **FlexCard** | The card-hosting form of FlexUI under `platforms/{platform}/card/`. |
+| **FlexPage** | Future page-hosting form of FlexUI under `platforms/{platform}/page/`, Phase 4+. |
 | **FlexUIEngine** | Singleton entry point; holds runtime, bridge, plugin registries. |
 | **FlexUIPlugin** | Bundle of component / api / loader / frontend registrations. |
 | **FlexCardController** | Per-card instance; owns one Scope and one root DomNode tree. |
@@ -484,7 +622,7 @@ Streaming semantics in the Phase 2 facade are downgraded to "complete-JSON-then-
 | **Mutation** | Atomic operation emitted by diff: Create / Update / Move / Delete / UpdateLayout. |
 | **Frontend** | Plugin extension that turns a bundle into a DomNode tree. |
 | **Component Layer** | The set of `ComponentInstance` factories registered to the engine. |
-| **Host** | The platform-specific mounting surface (FlexCard / FlexPage). |
+| **Host** | The platform-specific mounting surface (FlexCard / FlexPage), located under `platforms/{platform}/`. |
 | **C2** | The chosen PoC validation target — "layering supports both FlexCard and AGenUI in one stack". |
 
 ---
