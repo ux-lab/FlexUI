@@ -30,6 +30,47 @@ the original header.
 
 ---
 
+The following files in flex-ui/core/vdom/ are derived from Hippy's
+dom/src/dom/ and dom/include/dom/ subtrees (W3-W4 absorption):
+
+  dom_node.h, dom_node.cc (derived from dom/include/dom/dom_node.h and
+    dom/src/dom/dom_node.cc),
+  dom_argument.h, dom_argument.cc (derived from dom/include/dom/dom_argument.h
+    and dom/src/dom/dom_argument.cc),
+  node_props.h (derived from dom/include/dom/node_props.h).
+
+The following files in flex-ui/core/reconciler/ are derived from Hippy's
+dom/src/dom/ subtree (W3-W4 absorption):
+
+  diff_utils.h, diff_utils.cc (derived from dom/include/dom/diff_utils.h and
+    dom/src/dom/diff_utils.cc).
+
+The following files in flex-ui/core/layout/ are derived from Hippy's
+dom/include/dom/ and dom/src/dom/ subtrees (W3-W4 absorption):
+
+  layout_node.h, layout_node.cc (derived from dom/include/dom/layout_node.h
+    and dom/src/dom/layout_node.cc),
+  yoga_layout_node.h, yoga_layout_node.cc (derived from
+    dom/include/dom/yoga_layout_node.h and dom/src/dom/yoga_layout_node.cc).
+
+All derived files in flex-ui/core/ retain their original Apache-2.0 license
+headers and THL A29 Limited copyright. FlexUI modifications are indicated by
+a "Modified by the FlexUI authors" or "FlexUI modification notice" block
+immediately below the original header.
+
+---
+
+The following directory contains Yoga by Meta Platforms, Inc., licensed under
+the MIT License, obtained via CMake FetchContent (W3-W4 absorption):
+
+  flex-ui/core/layout/third_party/yoga/ (vendored from
+    https://github.com/facebook/yoga at the version pinned in
+    flex-ui/core/layout/CMakeLists.txt)
+
+Full license text: flex-ui/core/layout/third_party/yoga/LICENSE.
+
+---
+
 The following directory contains QuickJS by Fabrice Bellard and Charlie
 Gordon, licensed under the MIT License:
 
