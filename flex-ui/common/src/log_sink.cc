@@ -15,11 +15,12 @@ namespace {
 
 const char* SeverityName(LogSeverity s) {
   switch (s) {
+    case TDF_LOG_DEBUG:   return "DEBUG";
     case TDF_LOG_INFO:    return "INFO";
     case TDF_LOG_WARNING: return "WARN";
     case TDF_LOG_ERROR:   return "ERROR";
     case TDF_LOG_FATAL:   return "FATAL";
-    default:              return "DEBUG";
+    default:              return "UNKNOWN";
   }
 }
 

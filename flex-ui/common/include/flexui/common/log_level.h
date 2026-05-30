@@ -37,6 +37,7 @@ namespace flexui::common {
 inline namespace log {
 
 enum LogSeverity {
+  TDF_LOG_DEBUG,
   TDF_LOG_INFO,
   TDF_LOG_WARNING,
   TDF_LOG_ERROR,

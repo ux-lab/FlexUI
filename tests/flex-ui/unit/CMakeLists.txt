@@ -5,6 +5,7 @@ add_executable(flexui_unit_tests
   string_utils_test.cc
   logging_test.cc
   log_sink_test.cc
+  log_tag_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
