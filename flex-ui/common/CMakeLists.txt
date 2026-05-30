@@ -11,6 +11,8 @@ target_sources(flexui_common PRIVATE
   src/log_settings_state.cc
   src/log_sink.cc
   src/log_tag.cc
+  src/platform/log_sink_harmony.cc
+  src/platform/log_sink_android.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.

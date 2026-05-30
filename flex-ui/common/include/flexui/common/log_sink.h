@@ -43,4 +43,9 @@ class LogSinkRegistry {
 // Default stdout sink: prints "[FLEXUI/<subsystem>/<event>][<level>] <msg>".
 std::unique_ptr<LogSink> MakeStdoutLogSink();
 
+// Platform sink factories. Available only when the corresponding platform
+// macro is set at compile time. Calling them otherwise returns nullptr.
+std::unique_ptr<LogSink> MakeHarmonyHiLogSink();
+std::unique_ptr<LogSink> MakeAndroidLogSink();
+
 }  // namespace flexui::common
