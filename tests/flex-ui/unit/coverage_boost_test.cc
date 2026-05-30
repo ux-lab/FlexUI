@@ -19,10 +19,12 @@
 #include "flexui/common/deserializer.h"
 #include "flexui/common/flexui_value.h"
 #include "flexui/common/log_sink.h"
+#include "flexui/common/one_shot_timer.h"
 #include "flexui/common/serializer.h"
 #include "flexui/common/string_view.h"
 #include "flexui/common/string_view_utils.h"
 #include "flexui/common/task_runner.h"
+#include "flexui/common/time_delta.h"
 #include "flexui/common/worker_manager.h"
 
 using namespace flexui::common;
@@ -943,5 +945,60 @@ TEST(TaskRunnerCoverageBoost, RemoveSubTaskRunnerWithLiveWorker) {
   });
 
   EXPECT_TRUE(WaitFor(done));
+  wm.Terminate();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// base_timer.cc — exercise uncovered branches
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ScheduleNewTask early-return when task_runner is expired (weak_ptr null).
+// Achieved by binding a temporary runner then letting it expire, then
+// calling Reset() which invokes ScheduleNewTask on the dead runner.
+TEST(BaseTimerCoverageBoost, ScheduleNewTaskWithDeadRunner) {
+  // Create a timer bound to a runner that will immediately go out of scope.
+  auto timer = std::make_shared<OneShotTimer>();
+  {
+    WorkerManager wm(1);
+    auto runner = wm.CreateTaskRunner("temp");
+    timer->BindTaskRunner(runner);
+    wm.Terminate();
+    // After Terminate + scope exit, runner shared_ptr released; timer holds only weak_ptr.
+  }
+  // task_runner_ weak_ptr is now expired → ScheduleNewTask returns early at line 51.
+  // Should not crash.
+  EXPECT_NO_THROW(timer->Reset());
+}
+
+// OneShotTimer: rapidly call Start twice with a long delay. The second Start
+// calls StartInternal → Reset(). At that point scheduled_run_time_ is in the
+// future (set by the first Start), so Reset() enters the
+// scheduled_run_time_ > TimePoint::Now() branch (lines 108-119).
+TEST(BaseTimerCoverageBoost, ResetWithFutureScheduledRunTime) {
+  WorkerManager wm(1);
+  auto runner = wm.CreateTaskRunner("reset-runner");
+
+  std::atomic<int> count{0};
+  auto timer = std::make_shared<OneShotTimer>(runner);
+
+  // First Start schedules task 5 seconds in the future → sets scheduled_run_time_ to ~now+5s.
+  timer->Start(
+      std::make_unique<Task>([&count]() { count.fetch_add(1); }),
+      time::TimeDelta::FromSeconds(5));
+
+  // Second Start immediately (scheduled_run_time_ is in the future):
+  // Reset() branch where scheduled_run_time_ > TimePoint::Now() is taken,
+  // covering lines 108-119. desired_run_time_ = now + 20ms, which is
+  // < scheduled_run_time_ (now+5s), so ScheduleNewTask is called (line 119).
+  timer->Start(
+      std::make_unique<Task>([&count]() { count.fetch_add(1); }),
+      time::TimeDelta::FromMilliseconds(20));
+
+  // Wait for the re-scheduled 20ms timer to fire.
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(2000);
+  while (count.load() < 1 && std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
+  EXPECT_GE(count.load(), 1);
   wm.Terminate();
 }
