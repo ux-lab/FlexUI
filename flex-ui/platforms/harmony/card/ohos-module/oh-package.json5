@@ -1,0 +1,9 @@
+{
+  "name": "@flexui/host-card",
+  "version": "0.1.0",
+  "main": "./ets/index.ets",
+  "description": "FlexUI HarmonyOS card host (FlexCard @Component, FlexCardController, FlexUIEngine)",
+  "license": "Apache-2.0",
+  "types": "./ets/index.d.ets",
+  "dependencies": {}
+}
