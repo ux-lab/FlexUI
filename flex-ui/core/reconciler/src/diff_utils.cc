@@ -23,6 +23,7 @@
 #include <cassert>
 
 #include "flexui/core/vdom/node_props.h"
+#include "flexui/common/log_tag.h"
 #include "flexui/common/logging.h"
 
 namespace flexui::core::reconciler {
@@ -75,10 +76,12 @@ static bool ShouldUpdateProperty(const std::string& key, const DomValueMap& old_
 }
 
 DiffValue DiffUtils::DiffProps(const DomValueMap& old_props_map, const DomValueMap& new_props_map, bool skip_style_diff) {
+  FLEXUI_TLOG(Reconciler, DiffEnter, DEBUG) << "old_count=" << old_props_map.size() << " new_count=" << new_props_map.size();
   std::shared_ptr<DomValueMap> update_props = std::make_shared<DomValueMap>();
   std::shared_ptr<std::vector<std::string>> delete_props = std::make_shared<std::vector<std::string>>();
   if (skip_style_diff) {
     // 跳过 style diff 计算
+    FLEXUI_TLOG(Reconciler, DiffExit, DEBUG) << "result_changes=0 (skip_style_diff)";
     return std::make_tuple(update_props, delete_props);
   }
 
@@ -146,6 +149,7 @@ DiffValue DiffUtils::DiffProps(const DomValueMap& old_props_map, const DomValueM
   }
 
   DiffValue diff_props = std::make_tuple(update_props, delete_props);
+  FLEXUI_TLOG(Reconciler, DiffExit, DEBUG) << "result_changes=" << (update_props->size() + delete_props->size());
   return diff_props;
 }
 

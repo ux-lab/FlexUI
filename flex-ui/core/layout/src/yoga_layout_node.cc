@@ -23,7 +23,9 @@
 #include <map>
 
 #include "flexui/core/vdom/node_props.h"
+#include "flexui/common/log_tag.h"
 #include "flexui/common/logging.h"
+#include "flexui/common/time_point.h"
 #include "yoga/Yoga.h"
 
 namespace flexui::core::layout {
@@ -262,6 +264,8 @@ YogaLayoutNode::~YogaLayoutNode() {
 void YogaLayoutNode::CalculateLayout(float parent_width, float parent_height, Direction direction,
                                      void* layout_context) {
   assert(yoga_node_ != nullptr);
+  FLEXUI_TLOG(Layout, CalculateEnter, DEBUG) << "parent_width=" << parent_width << " parent_height=" << parent_height;
+  auto t0 = flexui::common::TimePoint::Now();
   YGDirection yoga_direction;
   if (direction == flexui::core::layout::Direction::Inherit) {
     yoga_direction = YGDirectionInherit;
@@ -274,6 +278,8 @@ void YogaLayoutNode::CalculateLayout(float parent_width, float parent_height, Di
   }
 
   YGNodeCalculateLayout(yoga_node_, parent_width, parent_height, yoga_direction);
+  auto duration_us = (flexui::common::TimePoint::Now() - t0).ToMicroseconds();
+  FLEXUI_TLOG(Layout, CalculateExit, DEBUG) << "duration_us=" << duration_us;
 }
 
 void YogaLayoutNode::SetLayoutStyles(

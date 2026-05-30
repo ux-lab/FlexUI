@@ -94,14 +94,18 @@ DomNode::DomNode(uint32_t id, uint32_t pid, int32_t index, std::string tag_name,
       dom_ext_map_(std::move(dom_ext_map)),
       is_virtual_(false),
       current_callback_id_(0),
-      event_listener_map_(nullptr) {}
+      event_listener_map_(nullptr) {
+  FLEXUI_TLOG(Vdom, NodeCreate, DEBUG) << "id=" << id_ << " view=" << view_name_;
+}
 
 DomNode::DomNode(uint32_t id, uint32_t pid)
     : DomNode(id, pid, 0, "", "", nullptr, nullptr) {}
 
 DomNode::DomNode() : DomNode(0, 0) {}
 
-DomNode::~DomNode() = default;
+DomNode::~DomNode() {
+  FLEXUI_TLOG(Vdom, NodeDestroy, DEBUG) << "id=" << id_;
+}
 
 // ---------------------------------------------------------------------------
 // Child management
