@@ -29,6 +29,9 @@ target_sources(flexui_common PRIVATE
   src/idle_timer.cc
   # Task 15: flexui_value (renamed from hippy_value)
   src/flexui_value.cc
+  # Task 16: serializer + deserializer
+  src/serializer.cc
+  src/deserializer.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.
