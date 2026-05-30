@@ -4,3 +4,5 @@
 playground/harmony/build-profile.json5
 playground/harmony/AppScope/app.json5
 tests/cpp/build
+flex-ui/build/
+tests/flex-ui/build/

@@ -1,0 +1,29 @@
+FlexUI
+Copyright (c) 2026 the FlexUI authors.
+
+This product includes software developed by Tencent (Hippy framework,
+https://github.com/Tencent/Hippy) and made available under the
+Apache License, Version 2.0.
+
+The following files in flex-ui/common/ are derived from Hippy's
+modules/footstone/ subtree (commit-pinned at integration time; see
+docs/superpowers/specs/2026-05-30-flexui-layering-design.md §4.4):
+
+  macros.h, check.h, log_level.h, time_delta.h, time_point.h, base_time.h,
+  string_view.h, string_view_utils.h, string_utils.h,
+  logging.h, log_settings.h, log_settings.cc, log_settings_state.cc,
+  task.h, task.cc, task_runner.h, task_runner.cc,
+  worker.h, worker.cc, worker_impl.h, worker_manager.h, worker_manager.cc,
+  cv_driver.h, cv_driver.cc, driver.h,
+  idle_task.h, idle_task.cc, idle_timer.h, idle_timer.cc,
+  base_timer.h, base_timer.cc, one_shot_timer.h, one_shot_timer.cc,
+  repeating_timer.h, repeating_timer.cc,
+  persistent_object_map.h, hash.h,
+  flexui_value.h, flexui_value.cc (renamed from hippy_value.{h,cc}),
+  serializer.h, serializer.cc, deserializer.h, deserializer.cc,
+  string_view.cc, string_utils.cc.
+
+Each derived file retains its original Apache-2.0 license header and
+THL A29 Limited copyright. Modifications by the FlexUI authors are
+indicated by a "Modified by the FlexUI authors" block immediately below
+the original header.
