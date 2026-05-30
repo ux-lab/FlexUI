@@ -498,20 +498,30 @@ Testing is a first-class deliverable of this PoC, not an afterthought. The frame
 
 ### 7.3 E2E Automation Tests (on-device, HarmonyOS)
 
-- Framework: **hmnextauto** (uiautomator2-compatible) + pytest, the project's existing HarmonyOS automation stack.
-- Hosted under `tests/flex-ui/e2e/`, layout aligned with FlexUI's existing test conventions for the harness.
-- Run target: real HarmonyOS device or emulator via HDC.
-- Each test installs the `playground/harmony` build, drives a specific scenario, asserts state via accessibility tree + screenshot diffs.
+- Framework: **pytest + hmnextauto** (uiautomator2-compatible), the project's existing HarmonyOS automation stack.
+- Hosted under `tests/flex-ui/e2e/`.
+- The harness is built on a `TestBase` class adapted from the dview project's proven pattern at `/Users/pingjiang/coding/gitcode/dview/tests/integration/harmonyos/test_base.py`. The file is copied into `tests/flex-ui/e2e/test_base.py` and customized for FlexUI (bundle name, page wait conditions, log tag); we do not symlink or pip-install the dview module to avoid runtime coupling. The base provides:
+  - `setup_class` — connects the `hmnextauto.Driver`, wakes/unlocks the device, ensures the playground HAP is installed.
+  - `setup_method` — per-test app restart and `_wait_for_page` gate.
+  - Element finders: `find_text(text, timeout)`, `wait_for_text(text, timeout)`, `dump()` (UI hierarchy, with graceful fallback).
+  - Interactions: `click_text(text)` and `long_click_text(text)` with hierarchy-bounds coordinate fallback when the accessibility node isn't directly clickable — important for `ArkUI_Node` C-API rendered nodes whose accessibility surface is partial.
+  - `screenshot(name)` writes to `tests/flex-ui/e2e/screenshots/` with a timestamp prefix; used by visual-parity assertions.
+  - `grab_log(tag, lines)` — runs `hdc shell hilog -t <tag>` to pull recent logs. FlexUI tests call `grab_log("FLEXUI", lines=500)` after every failed assertion so the per-subsystem logs from §8 land in the test report automatically.
+- FlexUI-specific extensions on top of `TestBase`:
+  - Class attribute `BUNDLE_URI` (FlexUI analog of dview's `CARD_FILE`) names the bundle the test loads via `FlexCardController`. The playground page reads it from launch params, identical to the existing `WaterfallDemoPage` launch-param pattern.
+  - `dump_diagnostics_on_failure` pytest fixture invokes `FlexUIEngine::DumpDiagnostics()` (see §8.5) via a debug-only NAPI method when any assertion fails, and attaches the dump to the pytest report.
+  - Pixel-diff helper `assert_screenshot_matches(baseline, tolerance=1)` for visual-parity scenario #4 below.
+- Run target: real HarmonyOS device or emulator connected via HDC. The pytest `device` marker (registered in `tests/flex-ui/e2e/conftest.py`, modeled after dview's `conftest.py`) gates these tests so they skip cleanly on host-only CI.
 - **PoC must include these eight scenarios** (failure of any blocks PoC acceptance):
-  1. `test_engine_init_and_destroy` — cold start, engine init, install plugin-a2ui, destroy engine; no leaks reported by HiLog.
-  2. `test_card_js_first_paint` — launch `FlexCardWaterfallDemoPage`, first card-js bundle paints within 80 ms (recorded baseline).
-  3. `test_a2ui_json_first_paint` — same, for a2ui-json frontend.
-  4. `test_dual_frontend_visual_parity` — render the same A2UI JSON via both frontends in adjacent cards; screenshot diff ≤ 1 pixel tolerance per channel.
-  5. `test_setdata_updates_view` — trigger `setData` from native via controller; assert visible text changes within one frame.
-  6. `test_event_round_trip` — tap a Button in card, assert JS handler runs and triggers `setData`, view updates.
-  7. `test_waterfall_scroll_smoothness` — scroll the 12-card waterfall through 5 viewports; assert no frame > 32 ms.
-  8. `test_card_isolation` — two cards in different states; setData on card A must not affect card B's DOM or JS state.
-- E2E tests must log device-side HiLog + host-side pytest log into a unified artifact directory for post-mortem.
+  1. `test_engine_init_and_destroy` — cold start, engine init, install plugin-a2ui, destroy engine; `grab_log` for `FLEXUI/Engine/*` shows matched Init/Destroy pairs; no `FLEXUI/.../Leak` lines.
+  2. `test_card_js_first_paint` — launch `FlexCardWaterfallDemoPage` with a `card-js` bundle; assert visible content via `wait_for_text` ≤ 80 ms after `controller.load()` resolves.
+  3. `test_a2ui_json_first_paint` — same scenario with an `a2ui-json` bundle.
+  4. `test_dual_frontend_visual_parity` — render the same A2UI JSON via both frontends in adjacent cards on one page; `screenshot()` each and assert pixel diff per channel ≤ 1.
+  5. `test_setdata_updates_view` — call `controller.setData(...)` from native side; `wait_for_text` confirms the new text appears within one frame.
+  6. `test_event_round_trip` — `click_text("+1")` on a Button card; assert the bound JS handler executes and triggers a `setData` reflected in the visible count.
+  7. `test_waterfall_scroll_smoothness` — scroll the 12-card waterfall through 5 viewports; sample frame timing via HiLog `FLEXUI/CommitPipeline/Apply` durations; assert no frame > 32 ms.
+  8. `test_card_isolation` — two cards in different bundles/data; `setData` on card A must not change card B's visible DOM, and `grab_log` shows the two Scopes' events do not interleave incorrectly.
+- All eight scenarios sub-class the FlexUI `TestBase` (no test directly instantiates `Driver`). Each test on failure auto-attaches: HiLog tail filtered by `FLEXUI`, the last `DumpDiagnostics()` snapshot, and a final-state screenshot.
 
 ### 7.4 Coexistence Smoke Test
 
