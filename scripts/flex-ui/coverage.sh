@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/flex-ui/coverage.sh — measure line coverage on flex-ui/common/
+# scripts/flex-ui/coverage.sh — measure line coverage on flex-ui/common/ and flex-ui/core/
 #
 # Requires: CMake 3.18+, Apple LLVM (xcrun llvm-cov gcov), Python 3
 # Usage:    ./scripts/flex-ui/coverage.sh [--threshold N]
@@ -36,29 +36,57 @@ find "${BUILD_DIR}" -name "*.gcda" -delete 2>/dev/null || true
 find "${BUILD_DIR}" -name "*.gcov" -delete 2>/dev/null || true
 "${BUILD_DIR}/unit/flexui_unit_tests"
 
-# ── Collect coverage data ─────────────────────────────────────────────────────
-GCDA_DIR="${BUILD_DIR}/flex-ui-build/common/CMakeFiles/flexui_common.dir/src"
-pushd "${GCDA_DIR}" > /dev/null
+# ── Collect coverage data from common and core ───────────────────────────────
+ALL_COV_OUTPUT=""
 
-# Generate gcov files (output to /dev/null; we re-run for the per-file summary).
-xcrun llvm-cov gcov -b ./*.gcda > /dev/null 2>&1 || true
+# common
+COMMON_GCDA_DIR="${BUILD_DIR}/flex-ui-build/common/CMakeFiles/flexui_common.dir/src"
+if [[ -d "${COMMON_GCDA_DIR}" ]]; then
+  pushd "${COMMON_GCDA_DIR}" > /dev/null
+  xcrun llvm-cov gcov -b ./*.gcda > /dev/null 2>&1 || true
+  COV_PART="$(xcrun llvm-cov gcov -b ./*.gcda 2>/dev/null || true)"
+  ALL_COV_OUTPUT+="${COV_PART}"$'\n'
+  popd > /dev/null
+fi
 
-# Capture the per-file summary lines.
-COV_OUTPUT="$(xcrun llvm-cov gcov -b ./*.gcda 2>/dev/null || true)"
-
-popd > /dev/null
+# core subsystems
+for subsystem in vdom reconciler layout js-engine; do
+  # find the CMakeFiles/flexui_core_*.dir/src directory
+  CORE_GCDA_DIR="${BUILD_DIR}/flex-ui-build/core/${subsystem}/CMakeFiles"
+  if [[ ! -d "${CORE_GCDA_DIR}" ]]; then
+    continue
+  fi
+  for lib_dir in "${CORE_GCDA_DIR}"/flexui_core_*.dir; do
+    SRC_DIR="${lib_dir}/src"
+    if [[ ! -d "${SRC_DIR}" ]]; then
+      # some subsystems compile .cc directly in lib_dir (no src/ subdir)
+      SRC_DIR="${lib_dir}"
+    fi
+    shopt -s nullglob
+    gcda_files=("${SRC_DIR}"/*.gcda)
+    shopt -u nullglob
+    if [[ ${#gcda_files[@]} -eq 0 ]]; then
+      continue
+    fi
+    pushd "${SRC_DIR}" > /dev/null
+    xcrun llvm-cov gcov -b ./*.gcda > /dev/null 2>&1 || true
+    COV_PART="$(xcrun llvm-cov gcov -b ./*.gcda 2>/dev/null || true)"
+    ALL_COV_OUTPUT+="${COV_PART}"$'\n'
+    popd > /dev/null
+  done
+done
 
 # ── Parse and report ──────────────────────────────────────────────────────────
 python3 - "${THRESHOLD}" <<PYEOF
 import sys, re
 
-raw = """${COV_OUTPUT}"""
+raw = """${ALL_COV_OUTPUT}"""
 threshold = float(sys.argv[1])
 
 files = []
 file_name = None
 for line in raw.splitlines():
-    m = re.search(r"File '(.*/src/([^']+))'", line)
+    m = re.search(r"File '(.*/(?:src|core)/([^']+))'", line)
     if m:
         file_name = m.group(2)
         continue
@@ -74,7 +102,7 @@ total_lines = sum(l for _, _, l, _ in files)
 total_exec  = sum(e for _, e, _, _ in files)
 aggregate   = total_exec * 100 / total_lines if total_lines else 0
 
-print("Per-file coverage (flex-ui/common/src):")
+print("Per-file coverage (flex-ui/common/src + flex-ui/core/*/src):")
 for pct, ex, tot, fn in sorted(files):
     tag = "OK " if pct >= 80 else "LOW"
     print(f"  {tag}  {pct:5.1f}%  ({ex:3d}/{tot:3d})  {fn}")

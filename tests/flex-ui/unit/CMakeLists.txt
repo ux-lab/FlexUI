@@ -36,6 +36,8 @@ add_executable(flexui_unit_tests
   js_engine_quickjs_test.cc
   # Task T12: JSVM smoke test (host: factory returns null)
   js_engine_jsvm_test.cc
+  # Task T14: core coverage boost
+  core_coverage_boost_test.cc
 )
 target_link_libraries(flexui_unit_tests PRIVATE
   flexui_common
