@@ -6,6 +6,9 @@ target_sources(flexui_common PRIVATE
   # Sources appended incrementally by later tasks in the W1-W2 absorption plan.
   src/string_view.cc
   src/string_utils.cc
+  src/logging.cc
+  src/log_settings.cc
+  src/log_settings_state.cc
 )
 # Force at least one TU so the static lib produces an archive even when
 # every source so far is header-only.

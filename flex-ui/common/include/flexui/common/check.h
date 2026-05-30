@@ -33,11 +33,7 @@
 
 #pragma once
 
-// logging.h is absorbed in Task 7; for now use assert for FLEXUI_CHECK.
-#include <cassert>
-#ifndef FLEXUI_CHECK
-#define FLEXUI_CHECK(condition) assert(condition)
-#endif
+#include "flexui/common/logging.h"
 
 namespace flexui::common {
 inline namespace check {

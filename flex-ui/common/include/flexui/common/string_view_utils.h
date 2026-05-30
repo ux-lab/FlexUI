@@ -26,8 +26,7 @@
  *   - Moved namespace `footstone` -> `flexui::common`.
  *   - Renamed include path `footstone/...` -> `flexui/common/...`.
  *   - Renamed macros `FOOTSTONE_*` -> `FLEXUI_*` (where present).
- *   - Replaced `#include "flexui/common/logging.h"` with `<cassert>` bridge
- *     (Task 7 will restore the logging include once logging.h is absorbed).
+ *   - Replaced `#include "footstone/logging.h"` with `flexui/common/logging.h`.
  *   - Fixed malformed closing namespace comments in original source
  *     (original had `}  // namespace base` / `}  // namespace hippy` /
  *     `}  // namespace tdf` which appear to be copy-paste artifacts).
@@ -43,12 +42,7 @@
 #include <string>
 #include <utility>
 
-// Task 7 will replace this with #include "flexui/common/logging.h"
-#include <cassert>
-#ifndef FLEXUI_UNREACHABLE
-#define FLEXUI_UNREACHABLE() assert(false)
-#endif
-
+#include "flexui/common/logging.h"
 #include "flexui/common/string_view.h"
 
 #define EXTEND_LITERAL(ch) ch, ch, u##ch, U##ch
