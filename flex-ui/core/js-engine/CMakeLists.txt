@@ -37,3 +37,12 @@ target_include_directories(flexui_core_js_engine PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/quickjs
 )
+
+if(FLEXUI_OHOS)
+  target_sources(flexui_core_js_engine PRIVATE
+    src/jsvm/jsvm_engine.cc
+    src/jsvm/jsvm_context.cc
+    # jsvm_value.cc is #include-d by jsvm_context.cc — not a separate TU
+  )
+  target_link_libraries(flexui_core_js_engine PUBLIC libjsvm.so)
+endif()
