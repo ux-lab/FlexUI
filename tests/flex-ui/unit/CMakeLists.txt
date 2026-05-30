@@ -38,6 +38,8 @@ add_executable(flexui_unit_tests
   js_engine_jsvm_test.cc
   # Task T14: core coverage boost
   core_coverage_boost_test.cc
+  # W5-W6 T7: card controller lifecycle
+  flex_card_controller_test.cc
   # W5-W6 T6: scope lifecycle + manager
   scope_lifecycle_test.cc
   # W5-W6 T2: bridge roundtrip
@@ -57,6 +59,7 @@ target_link_libraries(flexui_unit_tests PRIVATE
   flexui_core_plugin_host
   flexui_core_commit_pipeline
   flexui_core_scope_manager
+  flexui_core_card_controller
   flexui_test_support
   GTest::gtest
   GTest::gtest_main
